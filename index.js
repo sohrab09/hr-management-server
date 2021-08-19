@@ -7,13 +7,15 @@ const uploadFile = require('./file.upload');
 const path = require('path');
 const fs = require("fs");
 const csv = require("csv-parser");
+const multer = require('multer');
+const upload = multer();
 
 // Connection to Database
 
-const db = mysql.createPool ({
+const db = mysql.createPool({
     host: "localhost",
     user: "root",
-    password: "",
+    password: "nahid007@@2345",
     database: "HRManagement",
 });
 
@@ -31,22 +33,19 @@ app.use('/static', express.static(path.join(`${__dirname}/uploads`)));
 // Add Employee Information In Database
 
 app.post("/api/insert", (req, res) => {
-    if(req.body.firstName == " ")
-    {
+    if (req.body.firstName == " ") {
         return res.send({
             success: false,
             message: 'Please Enter First Name'
         })
     }
-    if(req.body.lastName == " ")
-    {
+    if (req.body.lastName == " ") {
         return res.send({
             success: false,
             message: 'Please Enter Last Name'
         })
     }
-    if(req.body.email == " ")
-    {
+    if (req.body.email == " ") {
         return res.send({
             success: false,
             message: 'Please Enter Email'
@@ -58,8 +57,7 @@ app.post("/api/insert", (req, res) => {
     const sqlInsert = "INSERT INTO employee_information (firstName, lastName, email) VALUES (?, ?, ?)";
     db.query(sqlInsert, [firstName, lastName, email], (err, result) => {
         console.log(result.affectedRows);
-        if (result.affectedRows > 0)
-        {
+        if (result.affectedRows > 0) {
             return res.send({
                 success: true,
                 message: 'New Employee Added In Database',
@@ -77,6 +75,42 @@ app.get("/api/get", (req, res) => {
     });
 });
 
+// Add Multiple Employee Information 
+
+app.post('/api/file-upload', uploadFile.single('file'), (req, res) => {
+    console.log(req.headers.host);
+    const filePath = req.file.originalname;
+
+    let response = {
+        successCount: 0,
+        errorCount: 0,
+    }
+    fs.createReadStream(`./uploads/${filePath}`)
+        .pipe(csv())
+        .on("data", (data) => {
+            console.log('csv row: ----- ', data)
+            if (data.firstName && data.lastName && data.email) {
+                const sqlInsert = "INSERT INTO employee_information (firstName, lastName, email) VALUES (?, ?, ?)";
+                db.query(sqlInsert, [data.firstName, data.lastName, data.email], (err, result) => {
+                });
+                response.successCount += 1;
+            } else {
+                response.errorCount += 1;
+            }
+        }).on("end", () => {
+            console.log(response);
+            fs.unlink(`./uploads/${filePath}`, (err)=> {
+                if(err)
+                console.log(err)
+            })
+            return res.send({
+                success: true,
+                message: 'Total Employee Data Success '+response.successCount+'Total Employee Data Failed '+response.errorCount,
+                data: response
+            });
+        });
+});
+
 
 // Initial API
 
@@ -84,52 +118,8 @@ app.get("/", (req, res) => {
     res.send("Welcome to HR Management");
 });
 
-app.post('/api/file-upload', uploadFile.single('file'), (req, res) => {
-    console.log(req.headers.host);
-    const filePath = req.file.originalname;
-    const sourcePath = `http://${path.join(`${req.headers.host}/static/${filePath}`)}`;
-    console.log(sourcePath);
 
 
-    let response = {
-        errorCount: 0,
-        successCount: 0,
-    }
-    fs.createReadStream(`./uploads/${filePath}`)
-        .pipe(csv())
-        .on("data", (data) => {
-            // results.push(data);
-            console.log('csv row: ----- ', data)
-            if (data.firstName && data.lastName && data.email) {
-                const sqlInsert = "INSERT INTO employee_information (firstName, lastName, email) VALUES (?, ?, ?)";
-                db.query(sqlInsert, [data.firstName, data.lastName, data.email], (err, result) => {
-                    console.log(result.affectedRows);
-                    if (result.affectedRows > 0)
-                    {
-                        return res.send({
-                            success: true,
-                            message: 'New Employee Added In Database',
-                        });
-                    }
-                });
-                response.successCount +=1;
-            } else{
-                response.errorCount +=1;
-            }
-        })
-        .on("end", () => {
-            console.log(response);
-        });
-
-    return res.send({
-        success: true,
-        link: sourcePath,
-        message: 'csv is processing',
-        data: response
-    });
-});
-
-
-app.listen(5000, () =>{
+app.listen(5000, () => {
     console.log("Application running on port: 5000")
 })
