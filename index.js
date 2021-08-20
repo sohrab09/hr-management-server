@@ -25,9 +25,14 @@ const db = mysql.createPool({
 app.use(cors());
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
 app.use('/static', express.static(path.join(`${__dirname}/uploads`)));
 
+
+// Initial API
+
+app.get("/", (req, res) => {
+    res.send("Welcome to HR Management");
+});
 
 
 // Add Employee Information In Database
@@ -75,6 +80,7 @@ app.get("/api/get", (req, res) => {
     });
 });
 
+
 // Add Multiple Employee Information 
 
 app.post('/api/file-upload', uploadFile.single('file'), (req, res) => {
@@ -108,13 +114,7 @@ app.post('/api/file-upload', uploadFile.single('file'), (req, res) => {
         });
 });
 
-
-// Initial API
-
-app.get("/", (req, res) => {
-    res.send("Welcome to HR Management");
-});
-
+// Console Message 
 
 app.listen(5000, () => {
     console.log("Application running on port: 5000")
