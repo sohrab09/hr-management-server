@@ -78,7 +78,6 @@ app.get("/api/get", (req, res) => {
 // Add Multiple Employee Information 
 
 app.post('/api/file-upload', uploadFile.single('file'), (req, res) => {
-    console.log(req.headers.host);
     const filePath = req.file.originalname;
 
     let response = {
@@ -88,7 +87,6 @@ app.post('/api/file-upload', uploadFile.single('file'), (req, res) => {
     fs.createReadStream(`./uploads/${filePath}`)
         .pipe(csv())
         .on("data", (data) => {
-            console.log('csv row: ----- ', data)
             if (data.firstName && data.lastName && data.email) {
                 const sqlInsert = "INSERT INTO employee_information (firstName, lastName, email) VALUES (?, ?, ?)";
                 db.query(sqlInsert, [data.firstName, data.lastName, data.email], (err, result) => {
@@ -98,14 +96,13 @@ app.post('/api/file-upload', uploadFile.single('file'), (req, res) => {
                 response.errorCount += 1;
             }
         }).on("end", () => {
-            console.log(response);
-            fs.unlink(`./uploads/${filePath}`, (err)=> {
-                if(err)
-                console.log(err)
+            fs.unlink(`./uploads/${filePath}`, (err) => {
+                if (err)
+                    console.log(err)
             })
             return res.send({
                 success: true,
-                message: 'Total Employee Data Success '+response.successCount+'Total Employee Data Failed '+response.errorCount,
+                message: 'Total Employee Data Success ' + response.successCount + 'Total Employee Data Failed ' + response.errorCount,
                 data: response
             });
         });
@@ -117,7 +114,6 @@ app.post('/api/file-upload', uploadFile.single('file'), (req, res) => {
 app.get("/", (req, res) => {
     res.send("Welcome to HR Management");
 });
-
 
 
 app.listen(5000, () => {
